@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>Muziekspel</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --card2:#20242d; --line:#2b303b;
+    --txt:#eef1f6; --mut:#9aa3b2; --acc:#1ed760; --acc2:#ff7a1a; --bad:#ff5a5a;
+    --r:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--txt);font:17px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+  header h1{font-size:20px;margin:0;letter-spacing:.3px}
+  header h1 span{color:var(--acc2)}
+  main{padding:0 16px 32px;max-width:560px;margin:0 auto}
+  .screen{display:none}
+  .screen.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:0 0 14px}
+  h2{font-size:18px;margin:0 0 10px}
+  p{margin:6px 0}
+  .mut{color:var(--mut);font-size:15px}
+  button,.btn{appearance:none;border:0;border-radius:14px;padding:16px 18px;font:600 18px system-ui,sans-serif;
+    background:var(--card2);color:var(--txt);width:100%;display:block;text-align:center;text-decoration:none;cursor:pointer}
+  button:active,.btn:active{transform:scale(.98)}
+  .pri{background:var(--acc);color:#04140a}
+  .org{background:var(--acc2);color:#1a0a00}
+  .ghost{background:transparent;border:1px solid var(--line)}
+  .small{padding:10px 12px;font-size:15px;width:auto;display:inline-block}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  .stack>*+*{margin-top:10px}
+  input,select{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0b0d11;color:var(--txt);font:16px system-ui,sans-serif}
+  label{display:block;font-size:14px;color:var(--mut);margin:10px 0 6px}
+  code{background:#0b0d11;border:1px solid var(--line);padding:2px 6px;border-radius:6px;font-size:14px;word-break:break-all}
+  ol{padding-left:22px;margin:6px 0}
+  ol li{margin:6px 0}
+  .iconbtn{background:none;border:0;color:var(--mut);font-size:24px;width:auto;padding:6px 8px}
+
+  /* spelers */
+  .pl{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .pl:last-child{border-bottom:0}
+  .pl .nm{flex:1;font-weight:600}
+  .pl .sc{min-width:40px;text-align:center;font:700 22px system-ui}
+  .pl.turn .nm::before{content:"▶ ";color:var(--acc2)}
+  .pm{width:48px;height:48px;padding:0;border-radius:12px;font-size:24px;flex:0 0 auto}
+
+  /* scanner */
+  .scanbox{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:1/1;margin-bottom:14px}
+  .scanbox video{width:100%;height:100%;object-fit:cover;display:block}
+  .scanbox .frame{position:absolute;inset:16%;border:3px solid rgba(255,255,255,.85);border-radius:20px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+  .scanbox .hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff;font-size:15px;text-shadow:0 1px 3px #000}
+  .torch{position:absolute;top:10px;right:10px;width:auto;padding:10px 12px;background:rgba(0,0,0,.55);font-size:20px}
+
+  /* spelen */
+  .disc{width:190px;height:190px;margin:10px auto 18px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#111 0 14%,var(--acc2) 14.5% 17%,#111 17.5% 100%);
+    box-shadow:inset 0 0 0 6px #1b1b1b, inset 0 0 0 30px #141414, inset 0 0 0 32px #222, inset 0 0 0 58px #141414, inset 0 0 0 60px #222;
+    position:relative}
+  .disc.spin{animation:spin 2.4s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .timer{font:800 64px/1 system-ui;text-align:center;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+  .timer.end{color:var(--bad)}
+  .bar{height:8px;background:var(--card2);border-radius:8px;overflow:hidden;margin:0 0 16px}
+  .bar i{display:block;height:100%;background:var(--acc);width:100%;transition:width .25s linear}
+  .turnlbl{text-align:center;color:var(--mut);margin-bottom:6px}
+  .turnlbl b{color:var(--txt)}
+
+  /* antwoord */
+  .ans{display:flex;gap:14px;align-items:center}
+  .ans img{width:92px;height:92px;border-radius:12px;object-fit:cover;background:var(--card2);flex:0 0 auto}
+  .ans .t{font:700 22px/1.2 system-ui}
+  .ans .a{color:var(--mut);margin-top:4px}
+  .ans .y{font:800 34px/1 system-ui;color:var(--acc2);margin-top:8px}
+
+  .toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));background:#2a2f3a;border:1px solid var(--line);
+    padding:14px 16px;border-radius:14px;display:none;z-index:9}
+  .toast.on{display:block}
+  .err{border-color:var(--bad)}
+  .flip{font-size:72px;text-align:center;margin:20px 0 6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎵 Muziek<span>spel</span></h1>
+  <button class="iconbtn" id="btnSettings" aria-label="Instellingen">⚙️</button>
+</header>
+<main>
+
+<!-- ========== EERSTE KEER: SPOTIFY KOPPELEN ========== -->
+<section class="screen" id="scrSetup">
+  <div class="card stack">
+    <h2>Eenmalig instellen</h2>
+    <ol class="mut">
+      <li>Ga op je telefoon of pc naar <b>developer.spotify.com/dashboard</b> en log in met jullie Spotify-account.</li>
+      <li>Kies <b>Create app</b>. Naam en omschrijving: bijvoorbeeld <i>Muziekspel</i>.</li>
+      <li>Bij <b>Redirect URI</b> plak je precies dit adres:<br><code id="redirUri"></code>
+        <button class="small ghost" id="btnCopyRedir" style="margin-top:6px">Kopieer adres</button></li>
+      <li>Vink <b>Web API</b> aan, ga akkoord en sla op.</li>
+      <li>Kopieer de <b>Client ID</b> en plak hem hieronder.</li>
+    </ol>
+    <label for="inpClient">Client ID</label>
+    <input id="inpClient" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="32 tekens">
+    <button class="pri" id="btnLogin">Koppel Spotify</button>
+  </div>
+</section>
+
+<!-- ========== START: SPELERS ========== -->
+<section class="screen" id="scrHome">
+  <div class="card">
+    <h2>Spelers</h2>
+    <div id="plList"></div>
+    <div class="row" style="margin-top:10px">
+      <input id="inpPlayer" placeholder="Naam toevoegen" maxlength="16">
+      <button class="small" id="btnAddPlayer" style="flex:0 0 auto">＋</button>
+    </div>
+  </div>
+  <div class="stack">
+    <button class="pri" id="btnStart">Scan een kaart</button>
+    <button class="ghost" id="btnResetScores">Scores op 0</button>
+  </div>
+  <p class="mut" id="devInfo" style="text-align:center;margin-top:14px"></p>
+</section>
+
+<!-- ========== SCANNEN ========== -->
+<section class="screen" id="scrScan">
+  <div class="turnlbl" id="turnScan"></div>
+  <div class="scanbox">
+    <video id="vid" playsinline muted></video>
+    <div class="frame"></div>
+    <div class="hint">Houd de QR-code in het vak</div>
+    <button class="torch" id="btnTorch" hidden>🔦</button>
+  </div>
+  <div class="stack">
+    <button class="ghost" id="btnScanBack">Terug</button>
+  </div>
+  <details class="card" style="margin-top:14px">
+    <summary class="mut">Code werkt niet? Plak een link</summary>
+    <input id="inpManual" placeholder="https://open.spotify.com/track/..." style="margin-top:10px">
+    <button class="small" id="btnManual" style="margin-top:8px">Afspelen</button>
+  </details>
+</section>
+
+<!-- ========== AFTELLEN (telefoon omdraaien, alleen in link-modus) ========== -->
+<section class="screen" id="scrFlip">
+  <div class="flip">🙃</div>
+  <div class="timer" id="flipCount">3</div>
+  <p class="mut" style="text-align:center">Draai de telefoon om — Spotify opent zo meteen.<br>Kom daarna terug naar deze app.</p>
+</section>
+
+<!-- ========== SPELEN ========== -->
+<section class="screen" id="scrPlay">
+  <div class="turnlbl" id="turnPlay"></div>
+  <div class="disc spin" id="disc"></div>
+  <div class="timer" id="timer">30</div>
+  <div class="bar"><i id="timerBar"></i></div>
+  <div class="stack">
+    <button class="org" id="btnReveal">Toon antwoord</button>
+    <div class="row">
+      <button id="btnPause">⏸ Pauze</button>
+      <button id="btnRestart">↺ Opnieuw</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ANTWOORD + PUNTEN ========== -->
+<section class="screen" id="scrReveal">
+  <div class="card">
+    <div class="ans">
+      <img id="ansImg" alt="">
+      <div>
+        <div class="t" id="ansTitle">–</div>
+        <div class="a" id="ansArtist"></div>
+        <div class="y" id="ansYear"></div>
+      </div>
+    </div>
+    <p class="mut" id="ansNote" style="margin-top:10px"></p>
+  </div>
+  <div class="card">
+    <h2>Punten</h2>
+    <div id="plScore"></div>
+  </div>
+  <div class="stack">
+    <button class="pri" id="btnNext">Volgende kaart</button>
+    <button class="ghost" id="btnHome">Naar spelers</button>
+  </div>
+</section>
+
+<!-- ========== INSTELLINGEN ========== -->
+<section class="screen" id="scrSettings">
+  <div class="card stack">
+    <h2>Afspelen op</h2>
+    <select id="selDevice"></select>
+    <button class="small ghost" id="btnRefreshDev">Ververs lijst</button>
+    <p class="mut">Staat je telefoon er niet bij? Open de Spotify-app even, speel iets af en ververs de lijst.</p>
+  </div>
+  <div class="card stack">
+    <h2>Spel</h2>
+    <label for="selTimer">Timer</label>
+    <select id="selTimer">
+      <option value="0">Geen timer</option>
+      <option value="20">20 seconden</option>
+      <option value="30">30 seconden</option>
+      <option value="45">45 seconden</option>
+      <option value="60">60 seconden</option>
+    </select>
+    <label for="selStop">Als de tijd om is</label>
+    <select id="selStop">
+      <option value="1">Muziek stoppen</option>
+      <option value="0">Muziek laten doorspelen</option>
+    </select>
+    <label for="selMode">Afspeelmanier</label>
+    <select id="selMode">
+      <option value="remote">Op de achtergrond (antwoord blijft verborgen)</option>
+      <option value="link">Spotify openen (telefoon omdraaien)</option>
+    </select>
+  </div>
+  <div class="stack">
+    <button id="btnSettingsBack" class="pri">Klaar</button>
+    <button class="ghost" id="btnLogout">Spotify ontkoppelen</button>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- opslag ---------- */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('ms_'+k); return v===null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem('ms_'+k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem('ms_'+k); }catch{} }
+};
+const REDIRECT = location.origin + location.pathname;
+const SCOPES = 'user-read-playback-state user-modify-playback-state';
+const $ = id => document.getElementById(id);
+
+let state = {
+  players: LS.get('players', []),       // [{name, score}]
+  turn: LS.get('turn', 0),
+  timer: LS.get('timer', 30),
+  stopAtEnd: LS.get('stopAtEnd', 1),
+  mode: LS.get('mode', 'remote'),
+  device: LS.get('device', null),       // {id, name}
+  track: null,                          // {id, info}
+  paused: false
+};
+function save(){
+  LS.set('players', state.players); LS.set('turn', state.turn);
+  LS.set('timer', state.timer); LS.set('stopAtEnd', state.stopAtEnd);
+  LS.set('mode', state.mode); LS.set('device', state.device);
+}
+
+/* ---------- schermen ---------- */
+let current = null;
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  if (current === 'scrScan' && id !== 'scrScan') stopCamera();
+  current = id;
+  window.scrollTo(0,0);
+}
+let toastT;
+function toast(msg, isErr, ms){
+  const t = $('toast'); t.textContent = msg; t.classList.toggle('err', !!isErr); t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 4000);
+}
+
+/* ---------- Spotify-login (PKCE, geen server nodig) ---------- */
+function rnd(n){ const a = new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a, b => ('0'+(b%36).toString(36)).slice(-1)).join(''); }
+function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+
+async function login(){
+  const cid = ($('inpClient').value || LS.get('clientId','')).trim();
+  if (!/^[0-9a-f]{32}$/i.test(cid)) { toast('Deze Client ID klopt niet: hij is 32 tekens lang (cijfers en a–f).', true); return; }
+  LS.set('clientId', cid);
+  const verifier = rnd(64);
+  LS.set('verifier', verifier);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: cid, response_type: 'code', redirect_uri: REDIRECT,
+    code_challenge_method: 'S256', code_challenge: challenge, scope: SCOPES
+  });
+}
+
+async function tokenRequest(params){
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(params)
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.error || ('token '+r.status));
+  LS.set('access', j.access_token);
+  LS.set('expires', Date.now() + (j.expires_in - 60) * 1000);
+  if (j.refresh_token) LS.set('refresh', j.refresh_token);
+}
+
+async function handleCallback(){
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  history.replaceState(null, '', REDIRECT);
+  if (q.has('error')) { toast('Spotify-koppeling geannuleerd.', true); return; }
+  try {
+    await tokenRequest({ grant_type:'authorization_code', code:q.get('code'), redirect_uri:REDIRECT,
+      client_id:LS.get('clientId',''), code_verifier:LS.get('verifier','') });
+    LS.del('verifier');
+    toast('Spotify gekoppeld ✔');
+  } catch(e) { toast('Koppelen mislukt: ' + e.message, true, 7000); }
+}
+
+async function token(){
+  if (LS.get('access') && Date.now() < LS.get('expires', 0)) return LS.get('access');
+  if (!LS.get('refresh')) throw new Error('niet ingelogd');
+  await tokenRequest({ grant_type:'refresh_token', refresh_token:LS.get('refresh'), client_id:LS.get('clientId','') });
+  return LS.get('access');
+}
+
+async function api(path, opts = {}, retry = true){
+  const r = await fetch('https://api.spotify.com/v1' + path, {
+    ...opts, headers: { Authorization: 'Bearer ' + await token(), 'Content-Type':'application/json', ...(opts.headers||{}) }
+  });
+  if (r.status === 401 && retry) { LS.set('expires', 0); return api(path, opts, false); }
+  let body = null;
+  if (r.status !== 204) body = await r.json().catch(() => null);
+  return { ok: r.ok, status: r.status, body };
+}
+
+function loggedIn(){ return !!LS.get('refresh'); }
+function logout(){ ['access','refresh','expires','device'].forEach(LS.del); state.device = null; show('scrSetup'); initSetup(); }
+
+/* ---------- apparaten ---------- */
+async function getDevices(){
+  const r = await api('/me/player/devices');
+  return (r.ok && r.body && r.body.devices) || [];
+}
+// Kies het apparaat: eerst het gekozen apparaat (op naam, ids kunnen wisselen), anders de enige telefoon.
+async function pickDevice(){
+  const list = await getDevices();
+  if (state.device) {
+    const m = list.find(d => d.id === state.device.id) || list.find(d => d.name === state.device.name);
+    if (m) { state.device = {id:m.id, name:m.name}; save(); return m; }
+  }
+  const phones = list.filter(d => d.type === 'Smartphone');
+  const cand = phones.length === 1 ? phones[0] : (list.length === 1 ? list[0] : null);
+  if (cand) { state.device = {id:cand.id, name:cand.name}; save(); return cand; }
+  return { _list: list };
+}
+async function fillDeviceSelect(){
+  const sel = $('selDevice');
+  sel.innerHTML = '<option>Laden…</option>';
+  let list = [];
+  try { list = await getDevices(); } catch(e) {}
+  sel.innerHTML = '';
+  if (!list.length) { sel.innerHTML = '<option value="">Geen apparaat gevonden — open Spotify</option>'; return; }
+  list.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.id; o.textContent = d.name + ' (' + ({Smartphone:'telefoon',Computer:'computer',Speaker:'speaker',TV:'tv'}[d.type] || d.type) + ')';
+    if (state.device && (d.id === state.device.id || d.name === state.device.name)) o.selected = true;
+    sel.appendChild(o);
+  });
+  if (!state.device) { const d = list[sel.selectedIndex] || list[0]; state.device = {id:d.id, name:d.name}; save(); }
+}
+
+/* ---------- QR-inhoud lezen ---------- */
+function parseTrack(text){
+  text = (text || '').trim();
+  let m = text.match(/spotify:track:([A-Za-z0-9]{22})/) ||
+          text.match(/open\.spotify\.com\/(?:intl-[a-zA-Z-]+\/)?(?:embed\/)?track\/([A-Za-z0-9]{22})/);
+  return m ? m[1] : null;
+}
+
+/* ---------- camera / scanner ---------- */
+let stream = null, scanLoop = null, detector = null, canvas = null, ctx = null, busy = false;
+async function loadJsQR(){
+  if (window.jsQR) return;
+  await new Promise((ok, no) => { const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+}
+async function startCamera(){
+  busy = false;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:1280} }, audio:false });
+  } catch(e) { toast('Geen toegang tot de camera. Sta de camera toe in Chrome.', true, 6000); return; }
+  const v = $('vid'); v.srcObject = stream; await v.play().catch(()=>{});
+  const track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  $('btnTorch').hidden = !caps.torch;
+  if ('BarcodeDetector' in window) {
+    try { detector = new BarcodeDetector({ formats:['qr_code'] }); } catch(e) { detector = null; }
+  }
+  if (!detector) { try { await loadJsQR(); } catch(e) { toast('Scanner kon niet laden. Controleer je internet.', true); } }
+  canvas = canvas || document.createElement('canvas'); ctx = ctx || canvas.getContext('2d', { willReadFrequently:true });
+  scanLoop = setInterval(scanFrame, 180);
+}
+function stopCamera(){
+  clearInterval(scanLoop); scanLoop = null;
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+let torchOn = false;
+async function toggleTorch(){
+  if (!stream) return;
+  torchOn = !torchOn;
+  try { await stream.getVideoTracks()[0].applyConstraints({ advanced:[{ torch: torchOn }] }); } catch(e) {}
+}
+async function scanFrame(){
+  if (busy) return;
+  const v = $('vid'); if (!v.videoWidth) return;
+  busy = true;
+  try {
+    let text = null;
+    if (detector) {
+      const codes = await detector.detect(v);
+      if (codes.length) text = codes[0].rawValue;
+    } else if (window.jsQR) {
+      const s = Math.min(v.videoWidth, v.videoHeight, 800);
+      canvas.width = canvas.height = s;
+      const sx = (v.videoWidth - s)/2, sy = (v.videoHeight - s)/2;
+      ctx.drawImage(v, sx, sy, s, s, 0, 0, s, s);
+      const res = jsQR(ctx.getImageData(0,0,s,s).data, s, s, { inversionAttempts:'dontInvert' });
+      if (res) text = res.data;
+    }
+    if (text) { await onCode(text); return; }
+  } catch(e) {}
+  busy = false;
+}
+let lastUnknown = '';
+async function onCode(text){
+  const id = parseTrack(text);
+  if (!id) {
+    if (text !== lastUnknown) { lastUnknown = text; toast('Deze code ken ik nog niet: ' + text.slice(0,120), true, 8000); }
+    busy = false; return;
+  }
+  if (navigator.vibrate) navigator.vibrate(60);
+  stopCamera();
+  await playTrack(id);
+}
+
+/* ---------- afspelen ---------- */
+function curPlayer(){ return state.players.length ? state.players[state.turn % state.players.length] : null; }
+function turnText(){ const p = curPlayer(); return p ? 'Aan de beurt: <b>' + esc(p.name) + '</b>' : ''; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function playTrack(id){
+  state.track = { id, info:null };
+  fetchInfo(id); // alvast ophalen, maar nog niet tonen
+  if (state.mode === 'link') return playViaLink(id);
+  try {
+    const dev = await pickDevice();
+    if (!dev.id) {
+      if (dev._list && dev._list.length > 1) { toast('Kies eerst op welke telefoon de muziek speelt.', true, 6000); show('scrSettings'); fillDeviceSelect(); return; }
+      toast('Spotify staat niet open. Open de Spotify-app even (speel iets af), kom terug en scan opnieuw.', true, 8000);
+      show('scrScan'); startCamera(); return;
+    }
+    let r = await api('/me/player/play?device_id=' + encodeURIComponent(dev.id), { method:'PUT', body: JSON.stringify({ uris:['spotify:track:'+id], position_ms:0 }) });
+    if (r.status === 404) { // apparaat in slaap: eerst wakker maken
+      await api('/me/player', { method:'PUT', body: JSON.stringify({ device_ids:[dev.id], play:false }) });
+      await new Promise(ok => setTimeout(ok, 700));
+      r = await api('/me/player/play?device_id=' + encodeURIComponent(dev.id), { method:'PUT', body: JSON.stringify({ uris:['spotify:track:'+id], position_ms:0 }) });
+    }
+    if (!r.ok) {
+      const msg = (r.body && r.body.error && r.body.error.message) || ('fout ' + r.status);
+      if (r.status === 403) {
+        toast('Spotify staat afspelen op afstand niet toe (' + msg + '). Ik schakel over op "Spotify openen".', true, 8000);
+        state.mode = 'link'; save(); return playViaLink(id);
+      }
+      toast('Afspelen lukte niet: ' + msg + '. Open Spotify even en probeer opnieuw.', true, 8000);
+      show('scrScan'); startCamera(); return;
+    }
+    startRound();
+  } catch(e) {
+    if (String(e.message).includes('niet ingelogd')) { show('scrSetup'); initSetup(); return; }
+    toast('Er ging iets mis: ' + e.message, true, 7000); show('scrScan'); startCamera();
+  }
+}
+
+function playViaLink(id){
+  show('scrFlip');
+  let n = 3; $('flipCount').textContent = n;
+  const t = setInterval(() => {
+    n--; $('flipCount').textContent = n;
+    if (n <= 0) { clearInterval(t); startRound(); location.href = 'https://open.spotify.com/track/' + id; }
+  }, 1000);
+}
+
+async function fetchInfo(id){
+  try {
+    const r = await api('/tracks/' + id);
+    if (r.ok && r.body) state.track.info = r.body;
+  } catch(e) {}
+}
+
+/* ---------- ronde + timer ---------- */
+let tInt = null, tLeft = 0, tEnd = 0;
+function startRound(){
+  state.paused = false;
+  $('btnPause').textContent = '⏸ Pauze';
+  $('turnPlay').innerHTML = turnText();
+  $('disc').classList.add('spin');
+  show('scrPlay');
+  startTimer(state.timer);
+}
+function startTimer(sec){
+  clearInterval(tInt);
+  const el = $('timer'), bar = $('timerBar');
+  el.classList.remove('end');
+  if (!sec) { el.textContent = '♪'; bar.parentNode.style.visibility = 'hidden'; return; }
+  bar.parentNode.style.visibility = 'visible';
+  tEnd = Date.now() + sec * 1000;
+  const tick = () => {
+    tLeft = Math.max(0, Math.ceil((tEnd - Date.now()) / 1000));
+    el.textContent = tLeft;
+    bar.style.width = (100 * (tEnd - Date.now()) / (sec*1000)) + '%';
+    if (tLeft <= 0) {
+      clearInterval(tInt); el.textContent = 'Tijd!'; el.classList.add('end'); bar.style.width = '0%';
+      if (navigator.vibrate) navigator.vibrate([200,100,200]);
+      if (state.stopAtEnd && state.mode === 'remote') pause(true);
+    }
+  };
+  tick(); tInt = setInterval(tick, 250);
+}
+async function pause(force){
+  if (state.mode !== 'remote') { toast('Pauzeren doe je in de Spotify-app.'); return; }
+  const wantPause = force === true ? true : !state.paused;
+  const dev = state.device ? '?device_id=' + encodeURIComponent(state.device.id) : '';
+  try {
+    await api('/me/player/' + (wantPause ? 'pause' : 'play') + dev, { method:'PUT' });
+    state.paused = wantPause;
+    $('btnPause').textContent = wantPause ? '▶ Verder' : '⏸ Pauze';
+    $('disc').classList.toggle('spin', !wantPause);
+  } catch(e) {}
+}
+async function restart(){
+  if (!state.track) return;
+  if (state.mode === 'link') { location.href = 'https://open.spotify.com/track/' + state.track.id; startTimer(state.timer); return; }
+  const dev = state.device ? '?device_id=' + encodeURIComponent(state.device.id) : '';
+  await api('/me/player/play' + dev, { method:'PUT', body: JSON.stringify({ uris:['spotify:track:'+state.track.id], position_ms:0 }) });
+  state.paused = false; $('btnPause').textContent = '⏸ Pauze'; $('disc').classList.add('spin');
+  startTimer(state.timer);
+}
+
+async function reveal(){
+  clearInterval(tInt);
+  if (!state.track.info) await fetchInfo(state.track.id);
+  const i = state.track.info;
+  if (i) {
+    $('ansTitle').textContent = i.name;
+    $('ansArtist').textContent = (i.artists || []).map(a => a.name).join(', ');
+    $('ansYear').textContent = (i.album && i.album.release_date || '').slice(0,4);
+    const img = i.album && i.album.images && i.album.images[0];
+    $('ansImg').src = img ? img.url : ''; $('ansImg').style.visibility = img ? 'visible' : 'hidden';
+    $('ansNote').textContent = 'Twijfel over het jaar? Het jaar op de kaart telt.';
+  } else {
+    $('ansTitle').textContent = 'Kijk op de kaart';
+    $('ansArtist').textContent = ''; $('ansYear').textContent = '';
+    $('ansImg').style.visibility = 'hidden';
+    $('ansNote').textContent = 'Spotify gaf de gegevens niet door.';
+  }
+  renderScore();
+  show('scrReveal');
+}
+
+/* ---------- spelers & punten ---------- */
+function renderHome(){
+  const box = $('plList'); box.innerHTML = '';
+  if (!state.players.length) box.innerHTML = '<p class="mut">Nog geen spelers. Je kunt ook zonder spelers spelen.</p>';
+  state.players.forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'pl' + (i === state.turn % state.players.length ? ' turn' : '');
+    d.innerHTML = '<span class="nm">' + esc(p.name) + '</span><span class="sc">' + p.score + '</span>' +
+      '<button class="pm ghost" data-del="' + i + '" aria-label="Verwijder">✕</button>';
+    box.appendChild(d);
+  });
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.del;
+    if (!confirmDel(i)) return;
+    state.players.splice(i,1); if (state.turn >= state.players.length) state.turn = 0; save(); renderHome();
+  });
+  const dv = $('devInfo');
+  dv.textContent = state.mode === 'link' ? 'Afspelen: Spotify openen' : (state.device ? 'Muziek speelt op: ' + state.device.name : '');
+}
+function confirmDel(i){ return state.players[i].score === 0 || window.confirm(state.players[i].name + ' verwijderen?'); }
+function renderScore(){
+  const box = $('plScore'); box.innerHTML = '';
+  if (!state.players.length) { box.innerHTML = '<p class="mut">Geen spelers ingesteld.</p>'; return; }
+  state.players.forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'pl' + (i === state.turn % state.players.length ? ' turn' : '');
+    d.innerHTML = '<span class="nm">' + esc(p.name) + '</span>' +
+      '<button class="pm" data-i="' + i + '" data-d="-1">−</button><span class="sc">' + p.score + '</span>' +
+      '<button class="pm pri" data-i="' + i + '" data-d="1">＋</button>';
+    box.appendChild(d);
+  });
+  box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+    const p = state.players[+b.dataset.i]; p.score = Math.max(0, p.score + (+b.dataset.d)); save(); renderScore();
+  });
+}
+function addPlayer(){
+  const n = $('inpPlayer').value.trim(); if (!n) return;
+  state.players.push({ name:n, score:0 }); $('inpPlayer').value = ''; save(); renderHome();
+}
+function nextTurn(){ if (state.players.length) state.turn = (state.turn + 1) % state.players.length; save(); }
+
+/* ---------- knoppen ---------- */
+function goScan(){ $('turnScan').innerHTML = turnText(); show('scrScan'); startCamera(); }
+$('btnLogin').onclick = login;
+$('btnCopyRedir').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(REDIRECT).then(() => toast('Adres gekopieerd')); };
+$('btnAddPlayer').onclick = addPlayer;
+$('inpPlayer').onkeydown = e => { if (e.key === 'Enter') addPlayer(); };
+$('btnStart').onclick = goScan;
+$('btnResetScores').onclick = () => { if (!confirm('Alle scores op 0 zetten?')) return; state.players.forEach(p => p.score = 0); state.turn = 0; save(); renderHome(); };
+$('btnScanBack').onclick = () => { show('scrHome'); renderHome(); };
+$('btnTorch').onclick = toggleTorch;
+$('btnManual').onclick = () => { const id = parseTrack($('inpManual').value); if (!id) { toast('Geen Spotify-nummer herkend in deze link.', true); return; } stopCamera(); playTrack(id); };
+$('btnReveal').onclick = reveal;
+$('btnPause').onclick = () => pause();
+$('btnRestart').onclick = restart;
+$('btnNext').onclick = () => { nextTurn(); goScan(); };
+$('btnHome').onclick = () => { nextTurn(); show('scrHome'); renderHome(); };
+$('btnSettings').onclick = () => {
+  if (!loggedIn()) return;
+  $('selTimer').value = String(state.timer); $('selStop').value = String(state.stopAtEnd); $('selMode').value = state.mode;
+  show('scrSettings'); fillDeviceSelect();
+};
+$('btnRefreshDev').onclick = fillDeviceSelect;
+$('selDevice').onchange = e => { const o = e.target.selectedOptions[0]; if (o && o.value) { state.device = { id:o.value, name:o.textContent.replace(/ \(.*\)$/,'') }; save(); } };
+$('selTimer').onchange = e => { state.timer = +e.target.value; save(); };
+$('selStop').onchange = e => { state.stopAtEnd = +e.target.value; save(); };
+$('selMode').onchange = e => { state.mode = e.target.value; save(); };
+$('btnSettingsBack').onclick = () => { show('scrHome'); renderHome(); };
+$('btnLogout').onclick = () => { if (confirm('Spotify ontkoppelen?')) logout(); };
+
+function initSetup(){ $('redirUri').textContent = REDIRECT; $('inpClient').value = LS.get('clientId',''); }
+
+/* ---------- start ---------- */
+(async function init(){
+  await handleCallback();
+  if (!loggedIn()) { initSetup(); show('scrSetup'); }
+  else { show('scrHome'); renderHome(); }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
